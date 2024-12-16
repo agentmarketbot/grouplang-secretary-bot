@@ -187,3 +187,25 @@ class TextSummarizer:
             'Content-Type': 'application/json',
             'x-api-key': self.api_key
         }
+from neo4j import GraphDatabase
+
+class Neo4jService:
+    def __init__(self, uri, user, password):
+        self.driver = GraphDatabase.driver(uri, auth=(user, password))
+
+    def close(self):
+        self.driver.close()
+
+    def store_conversation(self, conversation_id, text, summary):
+        with self.driver.session() as session:
+            session.write_transaction(self._create_and_return_conversation, conversation_id, text, summary)
+
+    @staticmethod
+    def _create_and_return_conversation(tx, conversation_id, text, summary):
+        query = (
+            "MERGE (c:Conversation {id: $conversation_id}) "
+            "SET c.text = $text, c.summary = $summary "
+            "RETURN c"
+        )
+        result = tx.run(query, conversation_id=conversation_id, text=text, summary=summary)
+        return result.single()
