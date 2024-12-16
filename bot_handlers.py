@@ -40,13 +40,9 @@ def handle_voice_message(message: Dict[str, Any], chat_id: int) -> None:
         logger.info(f"Processed voice message: file_id={file_id}, "
                     f"transcription_length={len(transcription)}, "
                     f"summary_length={len(summary)}")
-        
+
         # Save conversation to the database
         db.save_conversation(conversation_id, transcription, summary)
-        
-                    f"transcription_length={len(transcription)}, "
-                    f"summary_length={len(summary)}")
-        
         response = format_response(transcription, summary)
         reply_markup = create_tip_button(conversation_id)
         
