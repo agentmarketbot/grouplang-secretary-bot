@@ -1,13 +1,4 @@
-import boto3
-from typing import Optional, Tuple, Dict
-import requests
-import time
-import uuid
-import logging
-from io import BytesIO
-from botocore.exceptions import ClientError
-
-logger = logging.getLogger(__name__)
+from database import Database
 
 class AWSServices:
     def __init__(self, region_name='us-east-1'):
@@ -51,6 +42,10 @@ class AWSServices:
         return self.transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
 
 class AudioTranscriber:
+    def __init__(self, aws_services: AWSServices, db: Database):
+        self.aws_services = aws_services
+        self.db = db
+        self.bucket_name = 'audio-transcribe-temp'
     def __init__(self, aws_services: AWSServices):
         self.aws_services = aws_services
         self.bucket_name = 'audio-transcribe-temp'
@@ -72,6 +67,8 @@ class AudioTranscriber:
             transcription = self._wait_for_transcription(job_name)
             self.aws_services.delete_file_from_s3(self.bucket_name, object_key)
 
+            # Store the transcription in the database
+            self.db.create_conversation(job_name, file_url, transcription)
             return transcription
         except Exception as e:
             logger.error(f"An error occurred: {e}")
