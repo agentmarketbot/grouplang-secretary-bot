@@ -3,6 +3,8 @@ import os
 from typing import Dict, Any
 from services import AWSServices, AudioTranscriber, TextSummarizer
 from utils.telegram_utils import send_message, get_telegram_file_url
+from services.mongodb_service import MongoDBService
+from config import Config
 from utils.message_utils import format_response, create_tip_button
 
 logger = logging.getLogger(__name__)
@@ -11,6 +13,7 @@ logger = logging.getLogger(__name__)
 aws_services = AWSServices()
 audio_transcriber = AudioTranscriber(aws_services)
 text_summarizer = TextSummarizer(os.environ.get('MARKETROUTER_API_KEY'))
+mongodb_service = MongoDBService(Config.MONGODB_URI, Config.MONGODB_DB_NAME)
 
 def handle_update(update: Dict[str, Any]) -> None:
     if 'message' in update:
@@ -33,6 +36,13 @@ def handle_voice_message(message: Dict[str, Any], chat_id: int) -> None:
         transcription = audio_transcriber.transcribe_audio(file_url)
         summary, conversation_id = text_summarizer.summarize_text(transcription)
         
+        conversation = {
+            "conversation_id": conversation_id,
+            "transcription": transcription,
+            "summary": summary
+        }
+        mongodb_service.save_conversation(conversation)
+
         logger.info(f"Processed voice message: file_id={file_id}, "
                     f"transcription_length={len(transcription)}, "
                     f"summary_length={len(summary)}")
