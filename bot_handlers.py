@@ -4,6 +4,7 @@ from typing import Dict, Any
 from services import AWSServices, AudioTranscriber, TextSummarizer
 from utils.telegram_utils import send_message, get_telegram_file_url
 from utils.message_utils import format_response, create_tip_button
+from database import Database
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 aws_services = AWSServices()
 audio_transcriber = AudioTranscriber(aws_services)
 text_summarizer = TextSummarizer(os.environ.get('MARKETROUTER_API_KEY'))
+database = Database()
 
 def handle_update(update: Dict[str, Any]) -> None:
     if 'message' in update:
@@ -33,7 +35,8 @@ def handle_voice_message(message: Dict[str, Any], chat_id: int) -> None:
         transcription = audio_transcriber.transcribe_audio(file_url)
         summary, conversation_id = text_summarizer.summarize_text(transcription)
         
-        logger.info(f"Processed voice message: file_id={file_id}, "
+        database.save_conversation(conversation_id, transcription, summary)
+        logger.info(f"Processed and saved voice message: file_id={file_id}, "
                     f"transcription_length={len(transcription)}, "
                     f"summary_length={len(summary)}")
         
