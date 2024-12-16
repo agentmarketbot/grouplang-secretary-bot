@@ -1,5 +1,6 @@
 import boto3
 from typing import Optional, Tuple, Dict
+from database import MySQLDatabase
 import requests
 import time
 import uuid
@@ -71,6 +72,11 @@ class AudioTranscriber:
 
             transcription = self._wait_for_transcription(job_name)
             self.aws_services.delete_file_from_s3(self.bucket_name, object_key)
+
+            # Save transcription to the database
+            db = MySQLDatabase()
+            db.insert_conversation(job_name, transcription, "Summary placeholder")
+            db.close()
 
             return transcription
         except Exception as e:
