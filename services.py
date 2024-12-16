@@ -10,7 +10,46 @@ from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
-class RedisService:
+class AWSServices:
+    def __init__(self, region_name='us-east-1'):
+        self.region_name = region_name
+        self.s3_client = boto3.client('s3', region_name=self.region_name)
+        self.transcribe_client = boto3.client('transcribe', region_name=self.region_name)
+
+    def create_s3_bucket_if_not_exists(self, bucket_name):
+        try:
+            self.s3_client.head_bucket(Bucket=bucket_name)
+        except ClientError as e:
+            if e.response['Error']['Code'] == '404':
+                self.s3_client.create_bucket(
+                    Bucket=bucket_name,
+                    CreateBucketConfiguration={'LocationConstraint': self.region_name}
+                )
+            else:
+                raise
+
+    def upload_file_to_s3(self, file_content, bucket_name, object_key):
+        self.s3_client.upload_fileobj(BytesIO(file_content), bucket_name, object_key)
+        return f's3://{bucket_name}/{object_key}'
+
+    def delete_file_from_s3(self, bucket_name, object_key):
+        self.s3_client.delete_object(Bucket=bucket_name, Key=object_key)
+
+    def start_transcription_job(self, job_name, media_uri, media_format='ogg', language_code='en-US'):
+        return self.transcribe_client.start_transcription_job(
+            TranscriptionJobName=job_name,
+            Media={'MediaFileUri': media_uri},
+            MediaFormat=media_format,
+            LanguageCode=language_code,
+            Settings={
+                'ShowSpeakerLabels': True,
+                'MaxSpeakerLabels': 2,
+                'ChannelIdentification': True
+            }
+        )
+
+    def get_transcription_job_status(self, job_name):
+        return self.transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
     def __init__(self, host='localhost', port=6379, db=0):
         self.client = redis.StrictRedis(host=host, port=port, db=db, decode_responses=True)
 
