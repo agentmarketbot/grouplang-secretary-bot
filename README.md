@@ -22,7 +22,7 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
 
 ## Prerequisites
 
-- Poetry for dependency management
+- pip for dependency management
 - AWS account with Transcribe access
 - Telegram Bot Token
 - MarketRouter API Key
@@ -35,14 +35,9 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
    cd GroupLang-secretary-bot
    ```
 
-2. Install Poetry if you haven't already:
+2. Install dependencies using pip:
    ```
-   curl -sSL https://install.python-poetry.org | python3 -
-   ```
-
-3. Install dependencies using Poetry:
-   ```
-   poetry install
+   pip install -r requirements.txt
    ```
 
 ## Configuration
@@ -58,12 +53,7 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
 
 ## Usage
 
-1. Activate the Poetry virtual environment:
-   ```
-   poetry shell
-   ```
-
-2. Start the bot:
+1. Start the bot:
    ```
    uvicorn main:app --reload
    ```
