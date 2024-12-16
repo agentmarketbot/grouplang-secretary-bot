@@ -2,6 +2,7 @@ import logging
 import os
 from typing import Dict, Any
 from services import AWSServices, AudioTranscriber, TextSummarizer
+from database import Database
 from utils.telegram_utils import send_message, get_telegram_file_url
 from utils.message_utils import format_response, create_tip_button
 
@@ -25,6 +26,9 @@ def handle_message(message: Dict[str, Any]) -> None:
     if 'voice' in message:
         handle_voice_message(message, chat_id)
 
+# Initialize database
+db = Database()
+
 def handle_voice_message(message: Dict[str, Any], chat_id: int) -> None:
     try:
         file_id = message['voice']['file_id']
@@ -34,6 +38,12 @@ def handle_voice_message(message: Dict[str, Any], chat_id: int) -> None:
         summary, conversation_id = text_summarizer.summarize_text(transcription)
         
         logger.info(f"Processed voice message: file_id={file_id}, "
+                    f"transcription_length={len(transcription)}, "
+                    f"summary_length={len(summary)}")
+        
+        # Save conversation to the database
+        db.save_conversation(conversation_id, transcription, summary)
+        
                     f"transcription_length={len(transcription)}, "
                     f"summary_length={len(summary)}")
         
