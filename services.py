@@ -1,5 +1,6 @@
 import boto3
 from typing import Optional, Tuple, Dict
+from database import Database
 import requests
 import time
 import uuid
@@ -96,9 +97,10 @@ class AudioTranscriber:
             raise Exception("Transcription failed")
 
 class TextSummarizer:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, db: Database):
         self.api_key = api_key
         self.base_url = 'https://api.marketrouter.ai/v1'
+        self.db = db
 
     def summarize_text(self, text: str) -> Tuple[Optional[str], str]:
         try:
@@ -111,6 +113,8 @@ class TextSummarizer:
             else:
                 logger.warning(f"No summary available for conversation_id: {conversation_id}")
             
+            if summary:
+                self.db.insert_conversation(conversation_id, text, summary)
             return summary, conversation_id
         except Exception as e:
             logger.error(f"An error occurred in summarize_text: {e}")
