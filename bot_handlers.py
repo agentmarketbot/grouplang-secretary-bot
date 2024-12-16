@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import Dict, Any
-from services import AWSServices, AudioTranscriber, TextSummarizer
+from services import AWSServices, AudioTranscriber, TextSummarizer, RedisService
 from utils.telegram_utils import send_message, get_telegram_file_url
 from utils.message_utils import format_response, create_tip_button
 
@@ -10,6 +10,11 @@ logger = logging.getLogger(__name__)
 # Initialize services
 aws_services = AWSServices()
 audio_transcriber = AudioTranscriber(aws_services)
+redis_service = RedisService(
+    host=os.environ.get('REDIS_HOST', 'localhost'),
+    port=int(os.environ.get('REDIS_PORT', 6379)),
+    db=int(os.environ.get('REDIS_DB', 0))
+)
 text_summarizer = TextSummarizer(os.environ.get('MARKETROUTER_API_KEY'))
 
 def handle_update(update: Dict[str, Any]) -> None:
@@ -32,6 +37,7 @@ def handle_voice_message(message: Dict[str, Any], chat_id: int) -> None:
         
         transcription = audio_transcriber.transcribe_audio(file_url)
         summary, conversation_id = text_summarizer.summarize_text(transcription)
+        redis_service.store_conversation(conversation_id, summary)
         
         logger.info(f"Processed voice message: file_id={file_id}, "
                     f"transcription_length={len(transcription)}, "

@@ -1,4 +1,5 @@
 import boto3
+import redis
 from typing import Optional, Tuple, Dict
 import requests
 import time
@@ -9,7 +10,15 @@ from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
-class AWSServices:
+class RedisService:
+    def __init__(self, host='localhost', port=6379, db=0):
+        self.client = redis.StrictRedis(host=host, port=port, db=db, decode_responses=True)
+
+    def store_conversation(self, conversation_id, data):
+        self.client.set(conversation_id, data)
+
+    def get_conversation(self, conversation_id):
+        return self.client.get(conversation_id)
     def __init__(self, region_name='us-east-1'):
         self.region_name = region_name
         self.s3_client = boto3.client('s3', region_name=self.region_name)
