@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from mangum import Mangum
 from config import Config
 from bot_handlers import handle_message, handle_update
-import logging
+from loguru import logger
 
 
 # Import your custom modules if they are compatible with AWS Lambda
@@ -13,12 +13,8 @@ import logging
 
 app = FastAPI()
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Configure loguru logger
+logger.add("file_{time}.log", rotation="1 week", retention="1 month", level="INFO")
 
 @app.get("/")
 async def index():
