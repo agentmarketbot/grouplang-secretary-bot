@@ -23,9 +23,10 @@ def handle_message(message: Dict[str, Any]) -> None:
     logger.info(f"Received message: {message}")
 
     if 'voice' in message:
-        handle_voice_message(message, chat_id)
+        language_code = message.get('language_code', 'en-US')
+        handle_voice_message(message, chat_id, language_code)
 
-def handle_voice_message(message: Dict[str, Any], chat_id: int) -> None:
+def handle_voice_message(message: Dict[str, Any], chat_id: int, language_code: str) -> None:
     try:
         file_id = message['voice']['file_id']
         file_url = get_telegram_file_url(file_id)
