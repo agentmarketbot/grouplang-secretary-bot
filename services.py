@@ -3,11 +3,10 @@ from typing import Optional, Tuple, Dict
 import requests
 import time
 import uuid
-import logging
+from loguru import logger
 from io import BytesIO
 from botocore.exceptions import ClientError
 
-logger = logging.getLogger(__name__)
 
 class AWSServices:
     def __init__(self, region_name='us-east-1'):
