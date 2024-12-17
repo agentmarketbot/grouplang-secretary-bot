@@ -11,6 +11,10 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
 - [Usage](#usage)
 - [Deployment](#deployment)
 - [API Reference](#api-reference)
+- [Getting Started](#getting-started)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
 
 ## Features
 
@@ -93,11 +97,18 @@ To update a specific package:
 poetry update package_name
 ```
 
-## API Reference
+## Getting Started
 
-The bot uses the following external APIs:
+To get started with the GroupLang-secretary-bot, follow the installation and configuration steps outlined above. Once set up, you can start the bot and interact with it via Telegram.
 
-- AWS Transcribe: For audio transcription
-- MarketRouter API: For text summarization and reward submission
+## Contributing
 
-Refer to the respective documentation for more details on these APIs.
+We welcome contributions to the GroupLang-secretary-bot! If you have suggestions, bug reports, or want to contribute code, please open an issue or submit a pull request. Make sure to follow our coding standards and guidelines.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Contact
+
+For questions, support, or more information, please contact the maintainers at support@grouplang.com or join our community chat on Telegram.
