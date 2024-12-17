@@ -14,11 +14,11 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
 
 ## Features
 
-- Transcribe voice messages using AWS Transcribe
-- Summarize transcribed text using a custom API
-- Allow users to tip for the service
-- Secure handling of API keys and tokens
-- Deployable as an AWS Lambda function
+- Transcribes voice messages using AWS Transcribe.
+- Summarizes transcribed text using a custom API.
+- Allows users to tip for the service.
+- Secures handling of API keys and tokens.
+- Deployable as an AWS Lambda function.
 
 ## Prerequisites
 
@@ -29,73 +29,73 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
 
 ## Installation
 
-1. Clone the repository:
+1. Clone the repository.
    ```
    git clone https://github.com/yourusername/GroupLang-secretary-bot.git
    cd GroupLang-secretary-bot
    ```
 
-2. Install Poetry if you haven't already:
+2. Install Poetry if you haven't already.
    ```
    curl -sSL https://install.python-poetry.org | python3 -
    ```
 
-3. Install dependencies using Poetry:
+3. Install dependencies using Poetry.
    ```
    poetry install
    ```
 
 ## Configuration
 
-1. Set up environment variables:
+1. Set up environment variables.
    - `TELEGRAM_BOT_TOKEN`: Your Telegram Bot Token
    - `AWS_ACCESS_KEY_ID`: Your AWS Access Key ID
    - `AWS_SECRET_ACCESS_KEY`: Your AWS Secret Access Key
    - `MARKETROUTER_API_KEY`: Your MarketRouter API Key
 
-2. Configure AWS credentials:
+2. Configure AWS credentials.
    - Either set up the AWS CLI or use environment variables as mentioned above
 
 ## Usage
 
-1. Activate the Poetry virtual environment:
+1. Activate the Poetry virtual environment.
    ```
    poetry shell
    ```
 
-2. Start the bot:
+2. Start the bot.
    ```
    uvicorn main:app --reload
    ```
 
-3. In Telegram, start a conversation with the bot or add it to a group
+3. In Telegram, start a conversation with the bot or add it to a group.
 
-4. Send a voice message to the bot
+4. Send a voice message to the bot.
 
-5. The bot will transcribe the audio, summarize the content, and send the result back
+5. The bot will transcribe the audio, summarize the content, and send the result back.
 
-6. Users can tip using the inline button provided with the response
+6. Users can tip using the inline button provided with the response.
 
 ## Adding or Updating Dependencies
 
-To add a new package:
+To add a new package.
 ```
 poetry add package_name
 ```
 
-To update all packages:
+To update all packages.
 ```
 poetry update
 ```
 
-To update a specific package:
+To update a specific package.
 ```
 poetry update package_name
 ```
 
 ## API Reference
 
-The bot uses the following external APIs:
+The bot uses the following external APIs.
 
 - AWS Transcribe: For audio transcription
 - MarketRouter API: For text summarization and reward submission
