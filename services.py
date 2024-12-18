@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 import time
 import uuid
 from io import BytesIO
@@ -8,7 +8,7 @@ import boto3
 import requests
 from botocore.exceptions import ClientError
 
-logger = logging.getLogger(__name__)
+
 
 
 
@@ -63,7 +63,7 @@ class AudioTranscriber:
     def transcribe_audio(self, file_url: str) -> str:
         try:
             self.aws_services.create_s3_bucket_if_not_exists(self.bucket_name)
-            logger.info(f"S3 Bucket created/confirmed: {self.bucket_name}")
+            logger.info(f'S3 Bucket created/confirmed: {self.bucket_name}')
 
             audio_content = self._download_audio(file_url)
             object_key = f'audio_{uuid.uuid4()}.ogg'
@@ -79,7 +79,7 @@ class AudioTranscriber:
 
             return transcription
         except Exception as e:
-            logger.error(f"An error occurred: {e}")
+            logger.error(f'An error occurred: {e}')
             raise
 
     def _download_audio(self, file_url: str) -> bytes:
@@ -120,7 +120,7 @@ class TextSummarizer:
             
             return summary, conversation_id
         except Exception as e:
-            logger.error(f"An error occurred in summarize_text: {e}")
+            logger.error(f'An error occurred in summarize_text: {e}')
             raise
 
     def submit_reward(self, conversation_id: str, reward_amount: float) -> None:
@@ -131,7 +131,7 @@ class TextSummarizer:
                 json={'gen_reward': reward_amount}
             )
             response.raise_for_status()
-            logger.info(f"Reward submitted successfully for conversation_id: {conversation_id}")
+            logger.info(f'Reward submitted successfully for conversation_id: {conversation_id}')
         except requests.exceptions.RequestException as e:
             logger.error(f"An error occurred while submitting reward: {e}")
             raise
