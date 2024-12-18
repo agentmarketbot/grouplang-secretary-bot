@@ -14,11 +14,11 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
 
 ## Features
 
-- Transcribe voice messages using AWS Transcribe
-- Summarize transcribed text using a custom API
-- Allow users to tip for the service
-- Secure handling of API keys and tokens
-- Deployable as an AWS Lambda function
+- Transcribes voice messages using AWS Transcribe.
+- Summarizes transcribed text using a custom API.
+- Allows users to tip for the service.
+- Securely handles API keys and tokens.
+- Deployable as an AWS Lambda function.
 
 ## Prerequisites
 
@@ -68,13 +68,13 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
    uvicorn main:app --reload
    ```
 
-3. In Telegram, start a conversation with the bot or add it to a group
+3. In Telegram, start a conversation with the bot or add it to a group.
 
-4. Send a voice message to the bot
+4. Send a voice message to the bot.
 
-5. The bot will transcribe the audio, summarize the content, and send the result back
+5. The bot will transcribe the audio, summarize the content, and send the result back.
 
-6. Users can tip using the inline button provided with the response
+6. Users can tip using the inline button provided with the response.
 
 ## Adding or Updating Dependencies
 
