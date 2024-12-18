@@ -1,6 +1,6 @@
 # GroupLang-secretary-bot
 
-GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summarizes the content, and allows users to tip for the service. It uses AWS services for transcription and a custom API for summarization. The bot is designed to be deployed as an AWS Lambda function.
+GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summarizes the content, and allows users to tip for the service. The bot utilizes AWS services for transcription and employs a custom API for summarization. The bot is designed to be deployed as an AWS Lambda function.
 
 ## Table of Contents
 
@@ -54,7 +54,7 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
    - `MARKETROUTER_API_KEY`: Your MarketRouter API Key
 
 2. Configure AWS credentials:
-   - Either set up the AWS CLI or use environment variables as mentioned above
+   - You can either set up the AWS CLI or use the environment variables as mentioned above
 
 ## Usage
 
