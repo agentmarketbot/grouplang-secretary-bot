@@ -1,13 +1,16 @@
-import boto3
-from typing import Optional, Tuple, Dict
-import requests
+import logging
 import time
 import uuid
-import logging
 from io import BytesIO
+from typing import Optional, Tuple, Dict
+
+import boto3
+import requests
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
+
+
 
 class AWSServices:
     def __init__(self, region_name='us-east-1'):
@@ -49,6 +52,8 @@ class AWSServices:
 
     def get_transcription_job_status(self, job_name):
         return self.transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
+
+
 
 class AudioTranscriber:
     def __init__(self, aws_services: AWSServices):
@@ -94,6 +99,8 @@ class AudioTranscriber:
             return result.json()['results']['transcripts'][0]['transcript']
         else:
             raise Exception("Transcription failed")
+
+
 
 class TextSummarizer:
     def __init__(self, api_key: str):
@@ -169,9 +176,9 @@ class TextSummarizer:
             if isinstance(data, list) and data:
                 last_item = data[-1]
                 if ('response' in last_item and 'choices' in last_item['response'] and 
-                    last_item['response']['choices']):
-                    last_response = last_item['response']['choices'][-1].get('message', {})
-                    return last_response.get('content', '')
+                            last_item['response']['choices']):
+                        last_response = last_item['response']['choices'][-1].get('message', {})
+                        return last_response.get('content', '')
             
             logger.warning(f"No valid summary found for conversation_id: {conversation_id}")
             return None
