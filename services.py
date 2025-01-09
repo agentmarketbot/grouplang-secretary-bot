@@ -50,7 +50,39 @@ class AWSServices:
     def get_transcription_job_status(self, job_name):
         return self.transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
 
-class AudioTranscriber:
+from abc import ABC, abstractmethod
+import openai
+
+class TranscriptionService(ABC):
+    @abstractmethod
+    def transcribe_audio(self, file_url: str) -> str:
+        pass
+
+class OpenAIWhisperService(TranscriptionService):
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        openai.api_key = api_key
+
+    def transcribe_audio(self, file_url: str) -> str:
+        try:
+            audio_content = self._download_audio(file_url)
+            with BytesIO(audio_content) as audio_file:
+                audio_file.name = "audio.ogg"
+                response = openai.Audio.transcribe(
+                    model="whisper-1",
+                    file=audio_file
+                )
+            return response["text"]
+        except Exception as e:
+            logger.error(f"OpenAI Whisper transcription failed: {e}")
+            raise
+
+    def _download_audio(self, file_url: str) -> bytes:
+        response = requests.get(file_url)
+        response.raise_for_status()
+        return response.content
+
+class AWSWhisperService(TranscriptionService):
     def __init__(self, aws_services: AWSServices):
         self.aws_services = aws_services
         self.bucket_name = 'audio-transcribe-temp'
@@ -74,7 +106,7 @@ class AudioTranscriber:
 
             return transcription
         except Exception as e:
-            logger.error(f"An error occurred: {e}")
+            logger.error(f"AWS Whisper transcription failed: {e}")
             raise
 
     def _download_audio(self, file_url: str) -> bytes:
@@ -94,6 +126,32 @@ class AudioTranscriber:
             return result.json()['results']['transcripts'][0]['transcript']
         else:
             raise Exception("Transcription failed")
+
+class TranscriptionServiceFactory:
+    @staticmethod
+    def create_service(service_type: str, **kwargs) -> TranscriptionService:
+        """
+        Create a transcription service based on the specified type.
+        
+        Args:
+            service_type: Either 'aws' or 'openai'
+            **kwargs: Service-specific configuration parameters
+                For AWS: aws_services (AWSServices instance)
+                For OpenAI: api_key (str)
+        
+        Returns:
+            TranscriptionService: An instance of the requested transcription service
+        """
+        if service_type.lower() == 'aws':
+            if 'aws_services' not in kwargs:
+                raise ValueError("aws_services is required for AWS Whisper")
+            return AWSWhisperService(kwargs['aws_services'])
+        elif service_type.lower() == 'openai':
+            if 'api_key' not in kwargs:
+                raise ValueError("api_key is required for OpenAI Whisper")
+            return OpenAIWhisperService(kwargs['api_key'])
+        else:
+            raise ValueError(f"Unknown service type: {service_type}")
 
 class TextSummarizer:
     def __init__(self, api_key: str):
