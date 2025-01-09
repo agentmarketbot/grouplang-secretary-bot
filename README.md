@@ -14,16 +14,21 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
 
 ## Features
 
-- Transcribe voice messages using AWS Transcribe
+- Flexible voice message transcription using either:
+  - AWS Transcribe
+  - OpenAI Whisper API
 - Summarize transcribed text using a custom API
 - Allow users to tip for the service
 - Secure handling of API keys and tokens
+- Configurable transcription service selection
 - Deployable as an AWS Lambda function
 
 ## Prerequisites
 
 - Poetry for dependency management
-- AWS account with Transcribe access
+- One of the following transcription service accounts:
+  - AWS account with Transcribe access
+  - OpenAI API account with Whisper API access
 - Telegram Bot Token
 - MarketRouter API Key
 
@@ -48,13 +53,23 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
 ## Configuration
 
 1. Set up environment variables:
+   
+   Required for all configurations:
    - `TELEGRAM_BOT_TOKEN`: Your Telegram Bot Token
+   - `MARKETROUTER_API_KEY`: Your MarketRouter API Key
+   - `TRANSCRIPTION_SERVICE`: Choose between 'aws' or 'openai' (defaults to 'aws' if not set)
+
+   Required for AWS Transcribe:
    - `AWS_ACCESS_KEY_ID`: Your AWS Access Key ID
    - `AWS_SECRET_ACCESS_KEY`: Your AWS Secret Access Key
-   - `MARKETROUTER_API_KEY`: Your MarketRouter API Key
+   - `AWS_REGION`: AWS region (defaults to 'us-east-1' if not set)
 
-2. Configure AWS credentials:
-   - Either set up the AWS CLI or use environment variables as mentioned above
+   Required for OpenAI Whisper:
+   - `OPENAI_API_KEY`: Your OpenAI API Key
+
+2. Configure credentials based on your chosen transcription service:
+   - For AWS: Either set up the AWS CLI or use AWS environment variables as mentioned above
+   - For OpenAI: Ensure you have a valid API key with access to the Whisper API
 
 ## Usage
 
@@ -97,7 +112,12 @@ poetry update package_name
 
 The bot uses the following external APIs:
 
-- AWS Transcribe: For audio transcription
+- Transcription Services (configurable):
+  - AWS Transcribe: For audio transcription using AWS services
+  - OpenAI Whisper API: For audio transcription using OpenAI's model
 - MarketRouter API: For text summarization and reward submission
 
-Refer to the respective documentation for more details on these APIs.
+For more information, refer to:
+- [AWS Transcribe Documentation](https://docs.aws.amazon.com/transcribe/)
+- [OpenAI Whisper API Documentation](https://platform.openai.com/docs/guides/speech-to-text)
+- MarketRouter API Documentation (refer to your API provider)
