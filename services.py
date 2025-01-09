@@ -1,4 +1,5 @@
 import boto3
+from io import BytesIO
 from typing import Optional, Tuple, Dict, Union
 import requests
 import time
