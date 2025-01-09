@@ -6,3 +6,5 @@ class Config:
     MARKETROUTER_API_KEY = os.environ.get('MARKETROUTER_API_KEY')
     AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    OPENAI_WHISPER_API_KEY = os.environ.get('OPENAI_WHISPER_API_KEY')
+    TRANSCRIPTION_SERVICE = os.environ.get('TRANSCRIPTION_SERVICE', 'aws')
