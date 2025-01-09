@@ -1,16 +1,29 @@
 import logging
 import os
 from typing import Dict, Any
-from services import AWSServices, AudioTranscriber, TextSummarizer
+from services import (
+    AWSServices, TextSummarizer, TranscriptionServiceFactory
+)
+from config import Config
 from utils.telegram_utils import send_message, get_telegram_file_url
 from utils.message_utils import format_response, create_tip_button
 
 logger = logging.getLogger(__name__)
 
 # Initialize services
-aws_services = AWSServices()
-audio_transcriber = AudioTranscriber(aws_services)
-text_summarizer = TextSummarizer(os.environ.get('MARKETROUTER_API_KEY'))
+Config.get_transcription_config()  # Validate configuration
+
+if Config.TRANSCRIPTION_SERVICE == 'aws':
+    aws_services = AWSServices(Config.AWS_REGION)
+    transcription_service = TranscriptionServiceFactory.create_service(
+        'aws', aws_services=aws_services
+    )
+else:  # openai
+    transcription_service = TranscriptionServiceFactory.create_service(
+        'openai', api_key=Config.OPENAI_API_KEY
+    )
+
+text_summarizer = TextSummarizer(Config.MARKETROUTER_API_KEY)
 
 def handle_update(update: Dict[str, Any]) -> None:
     if 'message' in update:
@@ -30,7 +43,7 @@ def handle_voice_message(message: Dict[str, Any], chat_id: int) -> None:
         file_id = message['voice']['file_id']
         file_url = get_telegram_file_url(file_id)
         
-        transcription = audio_transcriber.transcribe_audio(file_url)
+        transcription = transcription_service.transcribe_audio(file_url)
         summary, conversation_id = text_summarizer.summarize_text(transcription)
         
         logger.info(f"Processed voice message: file_id={file_id}, "
