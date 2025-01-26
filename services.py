@@ -1,10 +1,13 @@
 import boto3
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, Union
 import requests
 import time
 import uuid
 import logging
+import os
 from io import BytesIO
+from abc import ABC, abstractmethod
+import openai
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
@@ -50,7 +53,39 @@ class AWSServices:
     def get_transcription_job_status(self, job_name):
         return self.transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
 
-class AudioTranscriber:
+from abc import ABC, abstractmethod
+import openai
+
+class AudioTranscriptionService(ABC):
+    @abstractmethod
+    def transcribe_audio(self, file_url: str) -> str:
+        pass
+
+class OpenAITranscriptionService(AudioTranscriptionService):
+    def __init__(self, api_key: str):
+        self.client = openai.Client(api_key=api_key)
+
+    def transcribe_audio(self, file_url: str) -> str:
+        try:
+            audio_content = self._download_audio(file_url)
+            with BytesIO(audio_content) as audio_file:
+                audio_file.name = "audio.ogg"
+                transcript = self.client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                    response_format="text"
+                )
+            return transcript
+        except Exception as e:
+            logger.error(f"OpenAI transcription error: {e}")
+            raise
+
+    def _download_audio(self, file_url: str) -> bytes:
+        response = requests.get(file_url)
+        response.raise_for_status()
+        return response.content
+
+class AWSTranscriptionService(AudioTranscriptionService):
     def __init__(self, aws_services: AWSServices):
         self.aws_services = aws_services
         self.bucket_name = 'audio-transcribe-temp'
@@ -65,16 +100,19 @@ class AudioTranscriber:
             s3_uri = self.aws_services.upload_file_to_s3(audio_content, self.bucket_name, object_key)
             logger.info(f"S3 URI: {s3_uri}")
 
-            job_name = f"whisper_job_{int(time.time())}"
-            self.aws_services.start_transcription_job(job_name, s3_uri)
-            logger.info(f"Transcription job started: {job_name}")
+            try:
+                job_name = f"whisper_job_{int(time.time())}"
+                self.aws_services.start_transcription_job(job_name, s3_uri)
+                logger.info(f"Transcription job started: {job_name}")
 
-            transcription = self._wait_for_transcription(job_name)
-            self.aws_services.delete_file_from_s3(self.bucket_name, object_key)
+                transcription = self._wait_for_transcription(job_name)
+                return transcription
+            finally:
+                # Clean up S3 file regardless of transcription success/failure
+                self.aws_services.delete_file_from_s3(self.bucket_name, object_key)
 
-            return transcription
         except Exception as e:
-            logger.error(f"An error occurred: {e}")
+            logger.error(f"AWS transcription error: {e}")
             raise
 
     def _download_audio(self, file_url: str) -> bytes:
@@ -93,7 +131,7 @@ class AudioTranscriber:
             result = requests.get(status['TranscriptionJob']['Transcript']['TranscriptFileUri'])
             return result.json()['results']['transcripts'][0]['transcript']
         else:
-            raise Exception("Transcription failed")
+            raise Exception("AWS transcription failed")
 
 class TextSummarizer:
     def __init__(self, api_key: str):
