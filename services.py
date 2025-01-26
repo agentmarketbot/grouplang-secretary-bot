@@ -1,5 +1,5 @@
 import boto3
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, Union
 import requests
 import time
 import uuid
@@ -50,7 +50,56 @@ class AWSServices:
     def get_transcription_job_status(self, job_name):
         return self.transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
 
-class AudioTranscriber:
+class OpenAITranscriber:
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.api_url = "https://api.openai.com/v1/audio/transcriptions"
+
+    def transcribe_audio(self, file_url: str) -> str:
+        try:
+            audio_content = self._download_audio(file_url)
+            
+            headers = {
+                "Authorization": f"Bearer {self.api_key}"
+            }
+            
+            files = {
+                'file': ('audio.ogg', audio_content, 'audio/ogg'),
+                'model': (None, 'whisper-1'),
+            }
+            
+            response = requests.post(self.api_url, headers=headers, files=files)
+            response.raise_for_status()
+            
+            result = response.json()
+            return result.get('text', '')
+            
+        except Exception as e:
+            logger.error(f"An error occurred with OpenAI transcription: {e}")
+            raise
+
+    def _download_audio(self, file_url: str) -> bytes:
+        response = requests.get(file_url)
+        response.raise_for_status()
+        return response.content
+
+
+class TranscriberFactory:
+    @staticmethod
+    def create_transcriber(service_type: str, **kwargs) -> Union[AWSTranscriber, OpenAITranscriber]:
+        if service_type.lower() == 'aws':
+            if 'aws_services' not in kwargs:
+                raise ValueError("AWS services instance required for AWS transcriber")
+            return AWSTranscriber(kwargs['aws_services'])
+        elif service_type.lower() == 'openai':
+            if 'api_key' not in kwargs:
+                raise ValueError("OpenAI API key required for OpenAI transcriber")
+            return OpenAITranscriber(kwargs['api_key'])
+        else:
+            raise ValueError(f"Unsupported transcription service: {service_type}")
+
+
+class AWSTranscriber:
     def __init__(self, aws_services: AWSServices):
         self.aws_services = aws_services
         self.bucket_name = 'audio-transcribe-temp'
@@ -74,7 +123,7 @@ class AudioTranscriber:
 
             return transcription
         except Exception as e:
-            logger.error(f"An error occurred: {e}")
+            logger.error(f"An error occurred with AWS transcription: {e}")
             raise
 
     def _download_audio(self, file_url: str) -> bytes:
