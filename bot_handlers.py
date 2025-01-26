@@ -1,15 +1,29 @@
 import logging
 import os
 from typing import Dict, Any
-from services import AWSServices, AudioTranscriber, TextSummarizer
+from services import (
+    AWSServices, AWSWhisperTranscriber, OpenAIWhisperTranscriber,
+    TextSummarizer, TranscriptionService
+)
 from utils.telegram_utils import send_message, get_telegram_file_url
 from utils.message_utils import format_response, create_tip_button
 
 logger = logging.getLogger(__name__)
 
+def get_transcriber() -> TranscriptionService:
+    transcription_service = os.environ.get('TRANSCRIPTION_SERVICE', 'aws').lower()
+    
+    if transcription_service == 'openai':
+        openai_api_key = os.environ.get('OPENAI_API_KEY')
+        if not openai_api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is required for OpenAI Whisper")
+        return OpenAIWhisperTranscriber(openai_api_key)
+    else:  # default to AWS
+        aws_services = AWSServices()
+        return AWSWhisperTranscriber(aws_services)
+
 # Initialize services
-aws_services = AWSServices()
-audio_transcriber = AudioTranscriber(aws_services)
+audio_transcriber = get_transcriber()
 text_summarizer = TextSummarizer(os.environ.get('MARKETROUTER_API_KEY'))
 
 def handle_update(update: Dict[str, Any]) -> None:

@@ -1,13 +1,18 @@
 import boto3
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, Protocol
 import requests
 import time
 import uuid
 import logging
 from io import BytesIO
 from botocore.exceptions import ClientError
+import openai
 
 logger = logging.getLogger(__name__)
+
+class TranscriptionService(Protocol):
+    def transcribe_audio(self, file_url: str) -> str:
+        pass
 
 class AWSServices:
     def __init__(self, region_name='us-east-1'):
@@ -50,10 +55,10 @@ class AWSServices:
     def get_transcription_job_status(self, job_name):
         return self.transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
 
-class AudioTranscriber:
-    def __init__(self, aws_services: AWSServices):
+class AWSWhisperTranscriber:
+    def __init__(self, aws_services: AWSServices, bucket_name: str = 'audio-transcribe-temp'):
         self.aws_services = aws_services
-        self.bucket_name = 'audio-transcribe-temp'
+        self.bucket_name = bucket_name
 
     def transcribe_audio(self, file_url: str) -> str:
         try:
@@ -94,6 +99,32 @@ class AudioTranscriber:
             return result.json()['results']['transcripts'][0]['transcript']
         else:
             raise Exception("Transcription failed")
+
+class OpenAIWhisperTranscriber:
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        openai.api_key = api_key
+
+    def transcribe_audio(self, file_url: str) -> str:
+        try:
+            audio_content = self._download_audio(file_url)
+            with BytesIO(audio_content) as audio_file:
+                audio_file.name = "audio.ogg"  # OpenAI needs a filename
+                response = openai.Audio.transcribe(
+                    model="whisper-1",
+                    file=audio_file,
+                    response_format="text"
+                )
+                return response
+        except Exception as e:
+            logger.error(f"OpenAI Whisper transcription error: {e}")
+            raise
+
+    def _download_audio(self, file_url: str) -> bytes:
+        response = requests.get(file_url)
+        response.raise_for_status()
+        return response.content
+
 
 class TextSummarizer:
     def __init__(self, api_key: str):

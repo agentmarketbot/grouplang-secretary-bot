@@ -29,6 +29,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Validate configuration on startup
+try:
+    Config.validate_config()
+    logger.info(f"Using transcription service: {Config.TRANSCRIPTION_SERVICE}")
+except ValueError as e:
+    logger.error(f"Configuration error: {e}")
+    raise
+
 
 @app.get("/")
 async def index():

@@ -16,7 +16,9 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
 
 ## Features
 
-- Transcribes voice messages using AWS Transcribe
+- Supports multiple transcription services:
+  - AWS Transcribe (default)
+  - OpenAI Whisper API
 - Summarizes transcribed text using a custom API
 - Allows users to tip for the service
 - Secures handling of API keys and tokens
@@ -25,9 +27,11 @@ GroupLang-secretary-bot is a Telegram bot that transcribes voice messages, summa
 ## Prerequisites
 
 - Poetry for dependency management
-- AWS account with Transcribe access
 - Telegram Bot Token
 - MarketRouter API Key
+- One of the following transcription service configurations:
+  - AWS account with Transcribe access (default)
+  - OpenAI API key for Whisper API
 
 ## Installation
 
@@ -68,15 +72,33 @@ To quickly get started with the GroupLang-secretary-bot, follow these steps:
 
 ## Configuration
 
-1. Set up environment variables:
+1. Set up common environment variables:
    - `TELEGRAM_BOT_TOKEN`: Your Telegram Bot Token
-   - `AWS_ACCESS_KEY_ID`: Your AWS Access Key ID
-   - `AWS_SECRET_ACCESS_KEY`: Your AWS Secret Access Key
    - `MARKETROUTER_API_KEY`: Your MarketRouter API Key
 
-2. Configure AWS credentials:
-   - Either set up the AWS CLI with `aws configure` or use environment variables as mentioned above.
-   - Ensure that your AWS IAM user has the necessary permissions for AWS Transcribe.
+2. Select and configure your transcription service using `TRANSCRIPTION_SERVICE`:
+   - For AWS Transcribe (default, `TRANSCRIPTION_SERVICE=aws`):
+     - `AWS_ACCESS_KEY_ID`: Your AWS Access Key ID
+     - `AWS_SECRET_ACCESS_KEY`: Your AWS Secret Access Key
+     - `AWS_REGION`: AWS region (default: 'us-east-1')
+     - Ensure your AWS IAM user has the necessary permissions for AWS Transcribe
+   
+   - For OpenAI Whisper (`TRANSCRIPTION_SERVICE=openai`):
+     - `OPENAI_API_KEY`: Your OpenAI API key
+
+Example configuration for AWS Transcribe:
+```bash
+export TRANSCRIPTION_SERVICE=aws
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_REGION=us-east-1
+```
+
+Example configuration for OpenAI Whisper:
+```bash
+export TRANSCRIPTION_SERVICE=openai
+export OPENAI_API_KEY=your_openai_api_key
+```
 
 1. Activate the Poetry virtual environment:
    ```
@@ -139,7 +161,20 @@ poetry update package_name
 
 The bot uses the following external APIs:
 
-- AWS Transcribe: For audio transcription
-- MarketRouter API: For text summarization and reward submission
+### Transcription Services
+- AWS Transcribe (default)
+  - Used when `TRANSCRIPTION_SERVICE=aws`
+  - Requires AWS credentials and appropriate IAM permissions
+  - [AWS Transcribe Documentation](https://docs.aws.amazon.com/transcribe/)
+
+- OpenAI Whisper API
+  - Used when `TRANSCRIPTION_SERVICE=openai`
+  - Requires OpenAI API key
+  - [OpenAI Whisper API Documentation](https://platform.openai.com/docs/api-reference/audio)
+
+### Summarization Service
+- MarketRouter API
+  - Used for text summarization and reward submission
+  - Requires MarketRouter API key
 
 Refer to the respective documentation for more details on these APIs.
