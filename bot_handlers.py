@@ -8,9 +8,18 @@ from utils.message_utils import format_response, create_tip_button
 logger = logging.getLogger(__name__)
 
 # Initialize services
-aws_services = AWSServices()
-audio_transcriber = AudioTranscriber(aws_services)
-text_summarizer = TextSummarizer(os.environ.get('MARKETROUTER_API_KEY'))
+from config import Config
+
+service_type = Config.TRANSCRIPTION_SERVICE
+if service_type == 'aws':
+    aws_services = AWSServices()
+    audio_transcriber = AudioTranscriber(aws_services=aws_services, service_type='aws')
+elif service_type == 'openai':
+    audio_transcriber = AudioTranscriber(openai_api_key=Config.OPENAI_API_KEY, service_type='openai')
+else:
+    raise ValueError(f"Invalid transcription service type: {service_type}")
+
+text_summarizer = TextSummarizer(Config.MARKETROUTER_API_KEY)
 
 def handle_update(update: Dict[str, Any]) -> None:
     if 'message' in update:
