@@ -1,15 +1,15 @@
 import logging
 import os
 from typing import Dict, Any
-from services import AWSServices, AudioTranscriber, TextSummarizer
+from services import AudioTranscriber, TextSummarizer
 from utils.telegram_utils import send_message, get_telegram_file_url
 from utils.message_utils import format_response, create_tip_button
+from config import Config
 
 logger = logging.getLogger(__name__)
 
 # Initialize services
-aws_services = AWSServices()
-audio_transcriber = AudioTranscriber(aws_services)
+audio_transcriber = AudioTranscriber(Config)
 text_summarizer = TextSummarizer(os.environ.get('MARKETROUTER_API_KEY'))
 
 def handle_update(update: Dict[str, Any]) -> None:

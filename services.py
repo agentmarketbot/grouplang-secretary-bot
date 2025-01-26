@@ -50,7 +50,13 @@ class AWSServices:
     def get_transcription_job_status(self, job_name):
         return self.transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
 
-class AudioTranscriber:
+class BaseTranscriber:
+    def _download_audio(self, file_url: str) -> bytes:
+        response = requests.get(file_url)
+        response.raise_for_status()
+        return response.content
+
+class AWSTranscriber(BaseTranscriber):
     def __init__(self, aws_services: AWSServices):
         self.aws_services = aws_services
         self.bucket_name = 'audio-transcribe-temp'
@@ -77,11 +83,6 @@ class AudioTranscriber:
             logger.error(f"An error occurred: {e}")
             raise
 
-    def _download_audio(self, file_url: str) -> bytes:
-        response = requests.get(file_url)
-        response.raise_for_status()
-        return response.content
-
     def _wait_for_transcription(self, job_name: str) -> str:
         while True:
             status = self.aws_services.get_transcription_job_status(job_name)
@@ -94,6 +95,61 @@ class AudioTranscriber:
             return result.json()['results']['transcripts'][0]['transcript']
         else:
             raise Exception("Transcription failed")
+
+class OpenAITranscriber(BaseTranscriber):
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.api_url = "https://api.openai.com/v1/audio/transcriptions"
+
+    def transcribe_audio(self, file_url: str) -> str:
+        try:
+            audio_content = self._download_audio(file_url)
+            
+            # Save audio content to a temporary file
+            temp_file = f'/tmp/audio_{uuid.uuid4()}.ogg'
+            with open(temp_file, 'wb') as f:
+                f.write(audio_content)
+
+            # Prepare the request
+            headers = {
+                'Authorization': f'Bearer {self.api_key}'
+            }
+            
+            files = {
+                'file': ('audio.ogg', open(temp_file, 'rb'), 'audio/ogg'),
+                'model': (None, 'whisper-1'),
+            }
+
+            response = requests.post(
+                self.api_url,
+                headers=headers,
+                files=files
+            )
+            response.raise_for_status()
+
+            # Clean up temporary file
+            os.remove(temp_file)
+
+            return response.json()['text']
+        except Exception as e:
+            logger.error(f"An error occurred with OpenAI transcription: {e}")
+            raise
+
+class AudioTranscriber:
+    def __init__(self, config):
+        self.config = config
+        if config.TRANSCRIPTION_SERVICE == 'aws':
+            aws_services = AWSServices(region_name=config.AWS_REGION)
+            self.transcriber = AWSTranscriber(aws_services)
+        elif config.TRANSCRIPTION_SERVICE == 'openai':
+            if not config.OPENAI_API_KEY:
+                raise ValueError("OpenAI API key is required for OpenAI transcription service")
+            self.transcriber = OpenAITranscriber(config.OPENAI_API_KEY)
+        else:
+            raise ValueError(f"Unsupported transcription service: {config.TRANSCRIPTION_SERVICE}")
+
+    def transcribe_audio(self, file_url: str) -> str:
+        return self.transcriber.transcribe_audio(file_url)
 
 class TextSummarizer:
     def __init__(self, api_key: str):
