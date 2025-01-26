@@ -1,11 +1,13 @@
 import boto3
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, Protocol
 import requests
 import time
 import uuid
 import logging
 from io import BytesIO
+from abc import ABC, abstractmethod
 from botocore.exceptions import ClientError
+import openai
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +52,37 @@ class AWSServices:
     def get_transcription_job_status(self, job_name):
         return self.transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
 
-class AudioTranscriber:
+class TranscriptionService(ABC):
+    @abstractmethod
+    def transcribe_audio(self, file_url: str) -> str:
+        pass
+
+    def _download_audio(self, file_url: str) -> bytes:
+        response = requests.get(file_url)
+        response.raise_for_status()
+        return response.content
+
+class OpenAITranscriber(TranscriptionService):
+    def __init__(self, api_key: str):
+        self.client = openai.OpenAI(api_key=api_key)
+
+    def transcribe_audio(self, file_url: str) -> str:
+        try:
+            audio_content = self._download_audio(file_url)
+            with BytesIO(audio_content) as audio_file:
+                audio_file.name = "audio.ogg"
+                response = self.client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                    response_format="text"
+                )
+            return response
+
+        except Exception as e:
+            logger.error(f"OpenAI transcription error: {e}")
+            raise
+
+class AWSTranscriber(TranscriptionService):
     def __init__(self, aws_services: AWSServices):
         self.aws_services = aws_services
         self.bucket_name = 'audio-transcribe-temp'
