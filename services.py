@@ -1,13 +1,27 @@
 import boto3
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, Protocol, Union
 import requests
 import time
 import uuid
 import logging
+import openai
 from io import BytesIO
+from abc import ABC, abstractmethod
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
+
+class TranscriptionService(ABC):
+    @abstractmethod
+    def transcribe_audio(self, file_url: str) -> str:
+        """Transcribe audio from the given URL."""
+        pass
+
+    def _download_audio(self, file_url: str) -> bytes:
+        """Download audio content from URL."""
+        response = requests.get(file_url)
+        response.raise_for_status()
+        return response.content
 
 class AWSServices:
     def __init__(self, region_name='us-east-1'):
@@ -50,7 +64,7 @@ class AWSServices:
     def get_transcription_job_status(self, job_name):
         return self.transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
 
-class AudioTranscriber:
+class AWSTranscriptionService(TranscriptionService):
     def __init__(self, aws_services: AWSServices):
         self.aws_services = aws_services
         self.bucket_name = 'audio-transcribe-temp'
@@ -74,13 +88,8 @@ class AudioTranscriber:
 
             return transcription
         except Exception as e:
-            logger.error(f"An error occurred: {e}")
+            logger.error(f"An error occurred in AWS transcription: {e}")
             raise
-
-    def _download_audio(self, file_url: str) -> bytes:
-        response = requests.get(file_url)
-        response.raise_for_status()
-        return response.content
 
     def _wait_for_transcription(self, job_name: str) -> str:
         while True:
@@ -94,6 +103,26 @@ class AudioTranscriber:
             return result.json()['results']['transcripts'][0]['transcript']
         else:
             raise Exception("Transcription failed")
+
+class OpenAITranscriptionService(TranscriptionService):
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        openai.api_key = api_key
+
+    def transcribe_audio(self, file_url: str) -> str:
+        try:
+            audio_content = self._download_audio(file_url)
+            with BytesIO(audio_content) as audio_file:
+                audio_file.name = "audio.ogg"  # OpenAI needs a filename
+                response = openai.Audio.transcribe(
+                    model="whisper-1",
+                    file=audio_file,
+                    response_format="text"
+                )
+                return response
+        except Exception as e:
+            logger.error(f"An error occurred in OpenAI transcription: {e}")
+            raise
 
 class TextSummarizer:
     def __init__(self, api_key: str):

@@ -1,16 +1,28 @@
 import logging
 import os
 from typing import Dict, Any
-from services import AWSServices, AudioTranscriber, TextSummarizer
+from services import (
+    AWSServices, AWSTranscriptionService, OpenAITranscriptionService,
+    TextSummarizer, TranscriptionService
+)
 from utils.telegram_utils import send_message, get_telegram_file_url
 from utils.message_utils import format_response, create_tip_button
+from config import Config
 
 logger = logging.getLogger(__name__)
 
 # Initialize services
-aws_services = AWSServices()
-audio_transcriber = AudioTranscriber(aws_services)
-text_summarizer = TextSummarizer(os.environ.get('MARKETROUTER_API_KEY'))
+def get_transcription_service() -> TranscriptionService:
+    if Config.TRANSCRIPTION_SERVICE == 'openai':
+        if not Config.OPENAI_API_KEY:
+            raise ValueError("OpenAI API key is required when using OpenAI transcription service")
+        return OpenAITranscriptionService(Config.OPENAI_API_KEY)
+    else:  # default to AWS
+        aws_services = AWSServices(Config.AWS_REGION)
+        return AWSTranscriptionService(aws_services)
+
+transcription_service = get_transcription_service()
+text_summarizer = TextSummarizer(Config.MARKETROUTER_API_KEY)
 
 def handle_update(update: Dict[str, Any]) -> None:
     if 'message' in update:
@@ -30,12 +42,13 @@ def handle_voice_message(message: Dict[str, Any], chat_id: int) -> None:
         file_id = message['voice']['file_id']
         file_url = get_telegram_file_url(file_id)
         
-        transcription = audio_transcriber.transcribe_audio(file_url)
+        transcription = transcription_service.transcribe_audio(file_url)
         summary, conversation_id = text_summarizer.summarize_text(transcription)
         
         logger.info(f"Processed voice message: file_id={file_id}, "
                     f"transcription_length={len(transcription)}, "
-                    f"summary_length={len(summary)}")
+                    f"summary_length={len(summary) if summary else 0}, "
+                    f"service={Config.TRANSCRIPTION_SERVICE}")
         
         response = format_response(transcription, summary)
         reply_markup = create_tip_button(conversation_id)
