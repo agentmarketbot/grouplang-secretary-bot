@@ -50,32 +50,70 @@ class AWSServices:
     def get_transcription_job_status(self, job_name):
         return self.transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
 
+class OpenAITranscriber:
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.api_url = "https://api.openai.com/v1/audio/transcriptions"
+
+    def transcribe_audio(self, audio_content: bytes) -> str:
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}"
+            }
+            
+            files = {
+                'file': ('audio.ogg', audio_content, 'audio/ogg'),
+                'model': (None, 'whisper-1'),
+            }
+            
+            response = requests.post(self.api_url, headers=headers, files=files)
+            response.raise_for_status()
+            
+            return response.json()['text']
+        except Exception as e:
+            logger.error(f"OpenAI transcription error: {e}")
+            raise
+
 class AudioTranscriber:
-    def __init__(self, aws_services: AWSServices):
+    def __init__(self, aws_services: Optional[AWSServices] = None, openai_api_key: Optional[str] = None, service: str = 'aws'):
+        self.service = service
         self.aws_services = aws_services
+        self.openai_transcriber = OpenAITranscriber(openai_api_key) if openai_api_key else None
         self.bucket_name = 'audio-transcribe-temp'
+
+        if service == 'aws' and not aws_services:
+            raise ValueError("AWS services required for AWS transcription")
+        if service == 'openai' and not openai_api_key:
+            raise ValueError("OpenAI API key required for OpenAI transcription")
 
     def transcribe_audio(self, file_url: str) -> str:
         try:
-            self.aws_services.create_s3_bucket_if_not_exists(self.bucket_name)
-            logger.info(f"S3 Bucket created/confirmed: {self.bucket_name}")
-
             audio_content = self._download_audio(file_url)
-            object_key = f'audio_{uuid.uuid4()}.ogg'
-            s3_uri = self.aws_services.upload_file_to_s3(audio_content, self.bucket_name, object_key)
-            logger.info(f"S3 URI: {s3_uri}")
-
-            job_name = f"whisper_job_{int(time.time())}"
-            self.aws_services.start_transcription_job(job_name, s3_uri)
-            logger.info(f"Transcription job started: {job_name}")
-
-            transcription = self._wait_for_transcription(job_name)
-            self.aws_services.delete_file_from_s3(self.bucket_name, object_key)
-
-            return transcription
+            
+            if self.service == 'openai':
+                return self.openai_transcriber.transcribe_audio(audio_content)
+            else:  # aws
+                return self._transcribe_with_aws(audio_content)
         except Exception as e:
             logger.error(f"An error occurred: {e}")
             raise
+
+    def _transcribe_with_aws(self, audio_content: bytes) -> str:
+        self.aws_services.create_s3_bucket_if_not_exists(self.bucket_name)
+        logger.info(f"S3 Bucket created/confirmed: {self.bucket_name}")
+
+        object_key = f'audio_{uuid.uuid4()}.ogg'
+        s3_uri = self.aws_services.upload_file_to_s3(audio_content, self.bucket_name, object_key)
+        logger.info(f"S3 URI: {s3_uri}")
+
+        job_name = f"whisper_job_{int(time.time())}"
+        self.aws_services.start_transcription_job(job_name, s3_uri)
+        logger.info(f"Transcription job started: {job_name}")
+
+        transcription = self._wait_for_transcription(job_name)
+        self.aws_services.delete_file_from_s3(self.bucket_name, object_key)
+
+        return transcription
 
     def _download_audio(self, file_url: str) -> bytes:
         response = requests.get(file_url)
