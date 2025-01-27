@@ -14,6 +14,33 @@ class AWSServices:
         self.region_name = region_name
         self.s3_client = boto3.client('s3', region_name=self.region_name)
         self.transcribe_client = boto3.client('transcribe', region_name=self.region_name)
+        
+    def setup_bucket_lifecycle(self, bucket_name: str) -> bool:
+        """
+        Sets up lifecycle policy to automatically delete objects after 24 hours.
+        Fixes #156
+        """
+        try:
+            lifecycle_config = {
+                'Rules': [
+                    {
+                        'ID': 'Delete temporary audio files',
+                        'Status': 'Enabled',
+                        'Prefix': '',  # Apply to all objects
+                        'Expiration': {'Days': 1},  # Delete after 24 hours
+                    }
+                ]
+            }
+            
+            self.s3_client.put_bucket_lifecycle_configuration(
+                Bucket=bucket_name,
+                LifecycleConfiguration=lifecycle_config
+            )
+            logger.info(f"Successfully set lifecycle policy on bucket {bucket_name}")
+            return True
+        except ClientError as e:
+            logger.error(f"Failed to set lifecycle policy: {str(e)}")
+            return False
 
     def create_s3_bucket_if_not_exists(self, bucket_name):
         try:
@@ -59,7 +86,11 @@ class AudioTranscriber:
         try:
             self.aws_services.create_s3_bucket_if_not_exists(self.bucket_name)
             logger.info(f"S3 Bucket created/confirmed: {self.bucket_name}")
-
+            
+            # Set up lifecycle policy for automatic cleanup after 24 hours
+            if not self.aws_services.setup_bucket_lifecycle(self.bucket_name):
+                logger.warning("Failed to set up bucket lifecycle policy. Files may need manual cleanup.")
+            
             audio_content = self._download_audio(file_url)
             object_key = f'audio_{uuid.uuid4()}.ogg'
             s3_uri = self.aws_services.upload_file_to_s3(audio_content, self.bucket_name, object_key)
